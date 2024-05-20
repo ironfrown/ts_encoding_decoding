@@ -1,0 +1,5 @@
+.ipynb_*
+.virtual_documents
+.ipynb_checkpoints
+legacy/
+
