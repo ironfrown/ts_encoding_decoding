@@ -41,6 +41,42 @@ def ts_wind_flatten(ts, step):
         flat_list += list(ts[-1][step:])
         return np.array(flat_list)
 
+### Converts a windowed set of records into a flat time series by averaging overlapping windows
+#     If step > window size, it will fill in the missing values with zeros
+#   ts: a windowed series of values
+#   step: step between windows
+#   returns: a flat averaged time series
+def ts_wind_flatten_avg(wind, wind_step):
+    n_wind = wind.shape[0]
+    if n_wind == 0: 
+        return np.array(wind)
+    else:
+        # Collect windows sums and counts
+        wind_size = wind.shape[1]
+        n_elems = wind_step * n_wind + (wind_size - wind_step)
+        
+        wind_avg = np.zeros((n_elems), dtype=float)
+        wind_sums = np.zeros((n_elems), dtype=float)
+        wind_count = np.zeros((n_elems), dtype=int)
+        
+        for wind_no in range(n_wind):
+            #print(f'Within window: {wind_no}')
+            for wind_i in range(wind_size):
+                wind_left_edge = wind_no * wind_step
+                elem_i = wind_left_edge + wind_i
+                # print(f'\ti={i} of {n_elems}, w_no={w_no} of {start_wind_no}, w[{wind_offset}]({wind_left_edge}, {wind_right_edge})')
+                wind_sums[elem_i] += wind[wind_no][wind_i]
+                wind_count[elem_i] += 1
+
+        # Average overlapping windows
+        for i in range(n_elems):
+            if wind_count[i] == 0:
+                wind_avg[i] == 0
+            else:
+                wind_avg[i] = wind_sums[i] / wind_count[i]
+
+        return wind_avg
+        
 ### Splits windowed time series (X, y) into training and validation parts
 #   X, y: time series split into sliding windows
 #   split: percentage of data to be used for training, the rest for validation

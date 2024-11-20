@@ -1,1 +1,0 @@
-{"case_name": "serial", "major_version": 8, "minor_version": 9, "data_sample": 70, "data_split": 0.7142857142857143, "log_interv": 1, "epochs": 16, "shots": 10000, "seed": 2022}

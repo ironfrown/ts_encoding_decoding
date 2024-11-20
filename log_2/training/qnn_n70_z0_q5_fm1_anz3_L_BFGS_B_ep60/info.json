@@ -1,0 +1,1 @@
+{"case_name": "qnn", "major_version": 9, "minor_version": 0, "data_name": "2_sins_sw", "data_sample": 70, "data_split": 0.7142857142857143, "data_noise": 0, "ansatz_qubits": 5, "ansatz_fm_layers": 1, "ansatz_anz_layers": 3, "ansatz_ent": "full", "log_interv": 1, "opt_name": "L_BFGS_B", "epochs": 60, "shots": 10000, "seed": 2022}

@@ -1,0 +1,1 @@
+{"case_name": "serial", "major_version": 9, "minor_version": 0, "data_name": "2_sins", "data_sample": 70, "data_split": 0.7142857142857143, "data_noise": 0.0, "ansatz_qubits": 1, "ansatz_layers": 27, "log_interv": 1, "opt_name": "L_BFGS_B", "epochs": 40, "shots": 10000, "seed": 2022}

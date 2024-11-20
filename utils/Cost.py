@@ -20,6 +20,7 @@ sys.path.append('.')
 sys.path.append('..')
 sys.path
 
+import os
 import numpy as np
 import math
 import random
@@ -222,328 +223,30 @@ def obj_fun_r2(expected_vals, probs):
 plt.rcParams["figure.figsize"] = (12, 6) 
 
 
-##### Cost classes - Cost and Cost_Flex
+##### Cost class Regressor for NeuralNetworkRegressor
 
-### Class Cost
-class Cost:
+from qiskit_algorithms.utils import algorithm_globals
 
-    # Class constants
-    name = "Cost class"
-
-    type_min1s = 'min1s'
-    type_swap = 'swap'
-    type_zeros = 'zeros'
-    type_negzeros = 'negzeros'
-    type_zerolog = 'zerolog'
-    
-    feedback_plot = 'plot'
-    feedback_print = 'print'
-    feedback_none = 'none'
-    
-    yscale_linear = 'linear'
-    yscale_log = 'log'
-    yscale_asinh = 'asinh'
-    yscale_logit = 'logit' # + function, functionlog, symlog
-            
-    # Initialises the costs
-    def __init__(self, train_set, qnn, optimizer, init_vals, 
-                 epochs=None, shuffle_interv=0, log_interv=1,
-                 feedback='plot', cost_type='swap', yscale='linear', 
-                 rand=None, prompt=None, print_page=20
-                ):
-
-        # All important variables
-        self.train_set = train_set
-        self.shuffle_interv = shuffle_interv
-        self.shuffled = '*'
-        self.log_interv = log_interv
-        self.objective_func_vals = []
-        self.params = []
-        self.qnn = qnn
-        self.opt = optimizer
-        self.init_vals = init_vals
-        self.iter = -1
-        self.rand = rand
-        self.init_time = time.time()
-        self.elapsed_time = 0
-        self.feedback = feedback
-        self.cost_type = cost_type
-        self.yscale = yscale
-        self.perform_tests=False
-        self.epochs = epochs
-        self.print_page = print_page
-        self.prompt = '' if prompt is None else prompt+' '
-
-        if self.rand is None:
-            self.rand = int(self.init_time) % 10000
-        np.random.seed(self.rand)
-
-        if self.shuffle_interv>0:
-            np.random.shuffle(self.train_set)            
-            self.shuffled = '*'
-        else:
-            self.shuffled = ' '
-
-    ### Reset objective function values
-    def reset(self):
-        self.iter = -1
-        self.objective_func_vals = []
-        self.params = []
-        self.elapsed_time = 0
-        self.init_time = time.time()
-
-    ### Plot cost
-    def cost_plot(self, col='black', title=None, xlabel='Iteration', ylabel='Cost function value', rcParams=(12, 6)):
-        min_cost = min(self.objective_func_vals)
-        min_x = np.argmin(self.objective_func_vals)*self.log_interv
-        clear_output(wait=True)
-        plt.rcParams["figure.figsize"] = rcParams
-        if title:
-            plt.title(title)
-        else:
-            time_str = str(datetime.timedelta(seconds=int(self.elapsed_time)))
-            info = f'Cost vs iteration ({self.prompt}iter# {self.shuffled}{self.iter}, '+ \
-                   ('' if self.epochs is None or self.epochs == 0 else f' ({int(self.iter / self.epochs * 100)}%), ')+ \
-                   f'min cost={np.round(min_cost, 4)} @ iter {min_x}, '+ \
-                   f'time={time_str})'
-            plt.title(info)
-        plt.xlabel(xlabel)
-        plt.ylabel(ylabel)
-        plt.yscale(self.yscale)
-        plt.plot(range(0, self.log_interv*len(self.objective_func_vals), self.log_interv), self.objective_func_vals, color=col)
-        plt.show()
-
-    ### Print cost
-    def cost_print(self):
-        if len(self.objective_func_vals) > 0:
-            if self.iter % self.print_page == 0:
-                clear_output(wait=True)
-            min_cost = min(self.objective_func_vals)
-            min_x = np.argmin(self.objective_func_vals)*self.log_interv
-            curr_cost = self.objective_func_vals[-1]
-            comp_symb = '<' if min_cost < curr_cost else '='
-            time_str = str(datetime.timedelta(seconds=int(self.elapsed_time)))
-            info = f'{self.prompt}iter# {self.shuffled}{self.iter}'+ \
-                   ('' if self.epochs is None or self.epochs == 0 else f' ({int(self.iter / self.epochs * 100)}%)')+ \
-                   f', time:{time_str}'+ \
-                   f', min cost {np.round(min_cost, 4)} @ iter {min_x} {comp_symb} cost {np.round(curr_cost, 4)} '
-            print(info)
-
-    ### Cost function used in training
-    def cost_fun(self, params_values, *args):
-        self.iter = self.iter+1
-
-        # Shuffle the data set if needed
-        if (self.shuffle_interv>0) and (self.iter % self.shuffle_interv == 0):
-            np.random.shuffle(self.train_set)
-            self.shuffled = '*'
-        else:
-            self.shuffled = ' '
-
-        # Perform one step forward
-        probs = self.qnn.forward(self.train_set, params_values)
-
-        # Calculate the cost of the improved model
-        if self.cost_type == Cost.type_swap:
-            cost = cost_swap(None, probs)
-        elif self.cost_type == Cost.type_min1s:
-            cost = cost_min1s(None, probs)
-        elif self.cost_type == Cost.type_zerolog:
-            cost = cost_zero_log(None, probs)
-        elif self.cost_type == Cost.type_negzeros:
-            cost = cost_neg_zero(None, probs)
-        else: # it is Cost.type_zeros
-            cost = cost_zero(None, probs)
-
-        # Calculate elapsed time so far
-        self.elapsed_time = time.time() - self.init_time
-    
-        # Save and report the cost and parameters as needed
-        if (self.iter % self.log_interv == 0):
-            self.objective_func_vals.append(cost)
-            self.params.append(params_values)
-            
-            # Feedback on the model performance
-            if self.feedback == Cost.feedback_plot:
-                self.cost_plot()
-            elif self.feedback == Cost.feedback_print:
-                self.cost_print()
-            # Else it is Cost.feedback_none
-
-        return cost
-
-    def optimize(self):
-        return self.opt.minimize(fun=self.cost_fun, x0=self.init_vals)
-
-
-from sklearn.utils import shuffle
-
-### Flexible Cost class 
-class Cost_Flex:
-
-    # Class constants
-    name = "Cost_Flex class"
-
-    type_swap = 'swap'
-    type_zeros = 'zeros'
-    
-    feedback_plot = 'plot'
-    feedback_print = 'print'
-    feedback_none = 'none'
-    
-    yscale_linear = 'linear'
-    yscale_log = 'log'
-    yscale_asinh = 'asinh'
-    yscale_logit = 'logit' # + function, functionlog, symlog
-            
-    # Initialises the costs
-    def __init__(self, train_X, train_Y, qnn, optimizer, init_vals, 
-                 epochs=None, shuffle_interv=0, log_interv=1,
-                 feedback='plot', yscale='linear', rand=None, prompt=None, 
-                 print_page=20, cost_type='zeros', obj_fun=None
-                ):
-
-        # All important variables
-        self.train_X = train_X                  # Training set features, e.g. noisy data
-        self.train_Y = train_Y                  # Training set output, e.g. pure data
-        self.shuffle_interv = shuffle_interv    # Number of iterations between shuffles, none when 0
-        self.shuffled = '*'                     # Shuffling indicator on output
-        self.log_interv = log_interv            # Number of iterations between results logging - cost and parameters
-        self.obj_fun_vals = []                  # A list of objective function values to be saved
-        self.params = []                        # A list of model parameters to be saved
-        self.qnn = qnn                          # QNN model to be used
-        self.opt = optimizer                    # Optimiser to be used
-        self.init_vals = init_vals              # Initial parameter values for the optimiser
-        self.iter = -1                          # Iteration counter, starts with -1
-        self.rand = rand                        # Seed for the random number generator
-        self.init_time = time.time()            # Timer
-        self.elapsed_time = 0                   # Optimisation elapsed time
-        self.feedback = feedback                # Feedback prompt to be displayed during the optimisation
-        self.cost_type = cost_type              # Legacy "hard-wired" cost type as a string ("swap" and "zeros" are built in)
-        self.obj_fun = obj_fun                  # Objective function, takes expected values and probabilities of different outcomes
-        self.yscale = yscale                    # Type of y-scale for plotting, e.g. linear or log
-        self.epochs = epochs                    # Number of optimisation iterations tobe executed
-        self.print_page = print_page            # Number of iterations between print feedback to be given
-        self.prompt = ''                        # Short prompt leading any form of feedback given
-
-        # Default prompt is empty string
-        self.prompt = '' if prompt is None else prompt+' '
-
-        # Legacy default objective functions
-        if obj_fun is None:
-            if self.cost_type == Cost.type_swap:
-                obj_fun = cost_swap
-            elif self.cost_type == Cost.type_zeros:
-                obj_fun = cost_zero
-
-        if self.rand is None:
-            self.rand = int(self.init_time) % 10000
-        np.random.seed(self.rand)
-
-        if self.shuffle_interv>0:
-            self.train_X, self.train_Y = shuffle(self.train_X, self.train_Y)            
-            self.shuffled = '*'
-        else:
-            self.shuffled = ' '
-
-    ### Reset objective function values
-    def reset(self):
-        self.iter = -1
-        self.obj_fun_vals = []
-        self.params = []
-        self.elapsed_time = 0
-        self.init_time = time.time()
-
-    ### Plot cost
-    def cost_plot(self, col='black', title=None, xlabel='Iteration', ylabel='Cost function value', rcParams=(12, 6)):
-        min_cost = min(self.obj_fun_vals)
-        min_x = np.argmin(self.obj_fun_vals)*self.log_interv
-        clear_output(wait=True)
-        plt.rcParams["figure.figsize"] = rcParams
-        if title:
-            plt.title(title)
-        else:
-            time_str = str(datetime.timedelta(seconds=int(self.elapsed_time)))
-            info = f'Cost vs iteration ({self.prompt}iter# {self.shuffled}{self.iter}, '+ \
-                   ('' if self.epochs is None or self.epochs == 0 else f' ({int(self.iter / self.epochs * 100)}%), ')+ \
-                   f'min cost={np.round(min_cost, 4)} @ iter {min_x}, '+ \
-                   f'time={time_str})'
-            plt.title(info)
-        plt.xlabel(xlabel)
-        plt.ylabel(ylabel)
-        plt.yscale(self.yscale)
-        plt.plot(range(0, self.log_interv*len(self.obj_fun_vals), self.log_interv), self.obj_fun_vals, color=col)
-        plt.show()
-
-    ### Print cost
-    def cost_print(self):
-        if len(self.obj_fun_vals) > 0:
-            if self.iter % self.print_page == 0:
-                clear_output(wait=True)
-            min_cost = min(self.obj_fun_vals)
-            min_x = np.argmin(self.obj_fun_vals)*self.log_interv
-            curr_cost = self.obj_fun_vals[-1]
-            comp_symb = '<' if min_cost < curr_cost else '='
-            time_str = str(datetime.timedelta(seconds=int(self.elapsed_time)))
-            info = f'{self.prompt}iter# {self.shuffled}{self.iter}'+ \
-                   ('' if self.epochs is None or self.epochs == 0 else f' ({int(self.iter / self.epochs * 100)}%)')+ \
-                   f', time:{time_str}'+ \
-                   f', min cost {np.round(min_cost, 4)} @ iter {min_x} {comp_symb} cost {np.round(curr_cost, 4)} '
-            print(info)
-
-    ### Cost function used in training
-    def cost_fun(self, params_values, *args):
-        self.iter = self.iter+1
-
-        # Shuffle the data set if needed
-        if (self.shuffle_interv>0) and (self.iter % self.shuffle_interv == 0):
-            self.train_X, self.train_Y = shuffle(self.train_X, self.train_Y)            
-            self.shuffled = '*'
-        else:
-            self.shuffled = ' '
-
-        # Perform one step forward
-        probs = self.qnn.forward(self.train_X, params_values)
-
-        # Calculate the cost of the improved model
-        # By comparing the expected values vs predicted from probabilities
-        cost = self.obj_fun(self.train_Y, probs)
-
-        # Calculate elapsed time so far
-        self.elapsed_time = time.time() - self.init_time
-    
-        # Save and report the cost and parameters as needed
-        if (self.iter % self.log_interv == 0):
-            self.obj_fun_vals.append(cost)
-            self.params.append(params_values)
-            
-            # Feedback on the model performance
-            if self.feedback == Cost.feedback_plot:
-                self.cost_plot()
-            elif self.feedback == Cost.feedback_print:
-                self.cost_print()
-            # Else it is Cost.feedback_none
-
-        return cost
-
-    def optimize(self):
-        return self.opt.minimize(fun=self.cost_fun, x0=self.init_vals)
-
-# Regressor callback - handling costs for NeuralNetworkRegressor
 class Regr_callback:
     name = "Regr_callback"
     
     # Initialises the callback
-    def __init__(self, log_interval=50):
+    def __init__(self, log_interval=1, prompt_interval=1, tqdm_progress=None):
+        self.objfun_min = 99999
+        self.log_min = 99999
         self.objfun_vals = []
         self.params_vals = []
+        self.epoch = 0
         self.log_interval = log_interval
+        self.prompt_interval = prompt_interval
+        self.pbar = tqdm_progress
 
     # Initialise callback lists
     # - For some reason [] defaults not always work (bug?)
-    def reset(self, obfun=[], params=[]):
-        self.objfun_vals = obfun
-        self.params_vals = params
+    def reset(self):
+        self.objfun_vals = []
+        self.params_vals = []
+        self.epoch = 0
 
     # Find the first minimum objective fun value
     def min_obj(self):
@@ -556,28 +259,47 @@ class Regr_callback:
 
     # Creates a simple plot of the objective functionm
     # - Can be used iteratively to make animated plot
-    def plot(self):
+    def plot(self, title=None, xlabel=None, ylabel=None, col=None, save_plot=None, show_plot=True):
         clear_output(wait=True)
+        if title is None: title = 'Objective function value'
+        if xlabel is None: xlabel = 'Iteration'
+        if ylabel is None: ylabel = 'Cost'
+        if col is None: col = 'blue'
         best_val = self.min_obj()
+        x_vals = [x*self.log_interval for x in range(len(self.objfun_vals))]
         plt.rcParams["figure.figsize"] = (12, 6)
-        plt.title(f'Objective function value (min: {np.round(best_val[1], 4)} @ {best_val[0]})')
-        plt.xlabel("Iteration")
-        plt.ylabel("Objective function value")
-        plt.plot(range(len(self.objfun_vals)), self.objfun_vals, color="blue")
-        plt.show()
+        plt.title(f'{title} (min: {np.round(best_val[1], 4)} @ {best_val[0]*self.log_interval})')
+        plt.xlabel(xlabel)
+        plt.ylabel(ylabel)
+        plt.plot(x_vals, self.objfun_vals, color=col)
+        
+        if save_plot is not None:
+            os.makedirs(os.path.dirname(save_plot), exist_ok=True)
+            plt.savefig(save_plot, format='eps')
+        if show_plot:
+            plt.show()
+
+    def collect(self, weights, obj_func_eval):
+        if self.objfun_min > obj_func_eval:
+            self.objfun_min = obj_func_eval
+        if self.epoch % self.log_interval == 0:
+            self.objfun_vals.append(obj_func_eval)
+            self.params_vals.append(weights)
+            self.log_min = np.min(self.objfun_vals)
+        if self.pbar is not None: self.pbar.update(1)
+        self.epoch += 1
 
     # Callback function to store objective function values and plot
-    def graph(self, weights, obj_func_eval):
-        self.objfun_vals.append(obj_func_eval)
-        self.params_vals.append(weights)
-        self.plot()
+    def objfun_graph(self, weights, obj_func_eval):
+        self.collect(weights, obj_func_eval)
+        if self.epoch % self.prompt_interval == 0:
+            self.plot()
             
     # Callback function to store objective function values but not plot
-    def collect(self, weights, obj_func_eval):
-        self.objfun_vals.append(obj_func_eval)
-        self.params_vals.append(weights)
-        current_batch_idx = len(self.objfun_vals)
-        if current_batch_idx % self.log_interval == 0:
-            prev_batch_idx = current_batch_idx-self.log_interval
-            last_batch_min = np.min(self.objfun_vals[prev_batch_idx:current_batch_idx])
-            print('Regr callback(', prev_batch_idx, ', ', current_batch_idx,') = ', last_batch_min)
+    def objfun_print(self, weights, obj_func_eval):
+        self.collect(weights, obj_func_eval)
+        if self.epoch % self.prompt_interval == 0:
+            best_val = self.min_obj()
+            print(f'Results:{"":<3}epoch={self.epoch: 5d}, min cost / '+\
+                  f'real={np.round(self.objfun_min, 4):0.5f} / '+\
+                  f'logged={np.round(best_val[1], 4):0.5f}{"":<3}@ {best_val[0]*self.log_interval: 5d}')

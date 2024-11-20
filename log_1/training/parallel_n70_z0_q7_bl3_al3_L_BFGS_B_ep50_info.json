@@ -1,1 +1,0 @@
-{"case_name": "parallel", "major_version": 8, "minor_version": 9, "data_sample": 70, "data_split": 0.7142857142857143, "data_noise": 0, "ansatz_qubits": 7, "ansatz_blayers": 3, "ansatz_alayers": 3, "log_interv": 1, "opt_name": "L_BFGS_B", "epochs": 50, "shots": 10000, "seed": 2022}

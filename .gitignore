@@ -2,4 +2,5 @@
 .virtual_documents
 .ipynb_checkpoints
 legacy/
+__pycache__/
 

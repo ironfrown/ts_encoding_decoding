@@ -11,14 +11,23 @@ sys.path
 import os
 import numpy as np
 import math
-import matplotlib.pyplot as plt
+import json
+import time
+import warnings
+
 from IPython.display import clear_output
+
+import matplotlib.pyplot as plt
+import matplotlib
+from matplotlib import set_loglevel
+set_loglevel("error")
+
 
 ### Plot the target function and data
 def plot_train_and_test_data(
     X_org, y_org, X_train, y_train, X_valid, y_valid,
     y_train_hat=None, y_valid_hat=None,
-    xlim=None, ylim=None, rcParams=(12, 6),
+    xlim=None, ylim=None, rcParams=(12, 6), dpi=72,
     legend_cols=3,
     labels=['Target function', 'Training data', 'Test data', 'Fitted model', 'Model predictions'],
     colors=['lightblue', 'lightblue', 'pink', 'blue', 'red'],
@@ -30,6 +39,7 @@ def plot_train_and_test_data(
     # Parameter values
     if rcParams is not None:
         plt.rcParams["figure.figsize"] = rcParams
+    plt.rcParams["figure.dpi"] = dpi
         
     if xlim is not None:
         plt.xlim(xlim[0], xlim[1])
@@ -60,13 +70,13 @@ def plot_train_and_test_data(
     else:
         plt.plot(X_valid, y_valid, color=colors[4], marker='o', linestyle='None')
 
+    plt.axvline(x = (X_train[-1][0]+X_valid[0][0])/2, color = 'lightgray', linestyle='dashed')
     plt.legend(loc='best', ncol=legend_cols)
     
     if save_plot is not None:
         os.makedirs(os.path.dirname(save_plot), exist_ok=True)
-        plt.savefig(save_plot, format='eps')
-
-    plt.axvline(x = (X_train[-1][0]+X_valid[0][0])/2, color = 'lightgray', linestyle='dashed')
+        ext = os.path.splitext(save_plot)[1][1:]
+        plt.savefig(save_plot, format=ext)
 
     plt.show()    
 
@@ -106,7 +116,8 @@ def qae_plot_source_data(
     plt.legend(loc='lower right', ncol=3)
     if save_plot is not None:
         os.makedirs(os.path.dirname(save_plot), exist_ok=True)
-        plt.savefig(save_plot, format='eps')
+        ext = os.path.splitext(save_plot)[1][1:]
+        plt.savefig(save_plot, format=ext)
     plt.show()
 
 
@@ -153,22 +164,15 @@ def qae_plot_source_and_noisy_data(
     plt.axvline(x = len(y_train)+1, color = 'lightgray', linestyle='dashed')
     plt.legend(loc='lower center', ncol=4)
     if save_plot:
-        plt.savefig(save_plot, format='eps')
+        os.makedirs(os.path.dirname(save_plot), exist_ok=True)
+        ext = os.path.splitext(save_plot)[1][1:]
+        plt.savefig(save_plot, format=ext)
     plt.show()
 
 
 ###
 ### Performance curves with extra details
 ###
-
-import json
-import time
-import warnings
-
-import matplotlib.pyplot as plt
-import numpy as np
-
-from IPython.display import clear_output
 
 # Exponential Moving Target used to smooth the lines 
 def smooth_movtarg(scalars, weight):  # Weight between 0 and 1
@@ -181,7 +185,7 @@ def smooth_movtarg(scalars, weight):  # Weight between 0 and 1
     return smoothed
 
 ### Plot cost
-def cost_plot(objective_func_vals, rcParams=(8, 4), yscale='linear', log_interv=1,
+def cost_plot(objective_func_vals, rcParams=(8, 4), dpi=72, yscale='linear', log_interv=1,
                   backplot=False, back_color='linen', smooth_weight=0.9, save_plot=None):
     min_cost = min(objective_func_vals)
     iter = len(objective_func_vals)
@@ -189,6 +193,7 @@ def cost_plot(objective_func_vals, rcParams=(8, 4), yscale='linear', log_interv=
     x_of_min = np.argmin(objective_func_vals)
     clear_output(wait=True)
     plt.rcParams["figure.figsize"] = rcParams
+    plt.rcParams["figure.dpi"] = dpi
     plt.title(f'Cost vs iteration '+('with smoothing ' if smooth_weight>0 else ' '))
     plt.xlabel(f'Iteration (min cost={np.round(min_cost, 4)} @ iter# {x_of_min*log_interv})')
     plt.ylabel("Cost function value")
@@ -198,11 +203,13 @@ def cost_plot(objective_func_vals, rcParams=(8, 4), yscale='linear', log_interv=
         plt.plot([x*log_interv for x in range(len(objective_func_vals))], objective_func_vals, color=back_color) # lightgray
     plt.plot([x*log_interv for x in range(len(smooth_fn))], smooth_fn, color='black')
     if save_plot is not None:
-        plt.savefig(save_plot, format='eps')
+        os.makedirs(os.path.dirname(save_plot), exist_ok=True)
+        ext = os.path.splitext(save_plot)[1][1:]
+        plt.savefig(save_plot, format=ext)
     plt.show()
 
 ### Plot MAE
-def mae_plot(mae_train_vals, mae_valid_vals, rcParams=(8, 4), yscale='linear', 
+def mae_plot(mae_train_vals, mae_valid_vals, rcParams=(8, 4), dpi=72, yscale='linear', 
                   backplot=False, back_color='linen', smooth_weight=0.9, save_plot=None):
     # clear_output(wait=True)
     min_train_mae = min(mae_train_vals)
@@ -212,6 +219,7 @@ def mae_plot(mae_train_vals, mae_valid_vals, rcParams=(8, 4), yscale='linear',
     x_of_min = np.argmin(mae_valid_vals)
     iter = len(mae_train_vals)
     plt.rcParams["figure.figsize"] = rcParams
+    plt.rcParams["figure.dpi"] = dpi
     plt.title(f'MAE vs iteration '+('with smoothing ' if smooth_weight>0 else ' ')+
               f'(iter# {iter}, '+
               f'min train MAE={np.round(min_train_mae, 4)}, '+
@@ -227,18 +235,20 @@ def mae_plot(mae_train_vals, mae_valid_vals, rcParams=(8, 4), yscale='linear',
     plt.plot(smooth_valid, label='Validation', color='red')
     plt.legend(loc='upper right', ncol=1)
     if save_plot is not None:
-        plt.savefig(save_plot, format='eps')
+        os.makedirs(os.path.dirname(save_plot), exist_ok=True)
+        ext = os.path.splitext(save_plot)[1][1:]
+        plt.savefig(save_plot, format=ext)
     plt.show()
 
 ### Plot and compare various performance plots
 #   If log_interv is a number, it applies to all curves
 #   If it is a list, each number applies to its curve
-def multi_perform_plot(pvals, rcParams=(8, 4), yscale='linear', 
-                  backplot=False, smooth_weight=0.9, save_plot=None,
-                  title='Performance vs iteration', meas_type='Cost', 
-                  meas_min=True, labels=[], back_color='linen',
-                  line_styles=None, line_cols=None, col_cycle_rep=5,
-                  xlim=None, ylim=None, log_interv=1):
+def multi_perform_plot(pvals, log_interv=1, rcParams=(8, 4), dpi=72, 
+                  yscale='linear', smooth_weight=0.9, smooth_type='emt', save_plot=None,
+                  title='Performance vs iteration', meas_type='Cost', ylabel='Cost', xlabel='Iteration',
+                  meas_min=True, labels=[], line_styles=None, line_cols=None, 
+                  backplot=False, back_color='linen', col_cycle_rep=10,
+                  legend_fsize=None, legend_cols=1, legend_lim=20, xlim=None, ylim=None):
     
     if not pvals: # Empty list of curves
         return
@@ -253,14 +263,17 @@ def multi_perform_plot(pvals, rcParams=(8, 4), yscale='linear',
     prop_cycle = plt.rcParams['axes.prop_cycle']
     default_cols = prop_cycle.by_key()['color']
     if line_cols is None: line_cols = default_cols*col_cycle_rep
-    if line_styles is None: line_styles = ['solid']*len(line_cols)
+    if line_styles is None: line_styles = ['solid']*len(pvals)
+    if legend_fsize is None: legend_fsize = 'small'
+    fig, ax = plt.subplots()
 
     iter = max([len(p) for p in pvals])*max(log_int_list)
     plt.rcParams["figure.figsize"] = rcParams
-    plt.title(f'{title} '+('with smoothing ' if smooth_weight>0 else ' ')+
-              f'(iter# {iter})')
-    plt.xlabel(f'Iteration')
-    plt.ylabel(meas_type)
+    plt.rcParams["figure.dpi"] = dpi
+    smooth_text = f'sm.{smooth_type}={smooth_weight:.2f}, ' if smooth_weight>0 else ''
+    plt.title(f'{title} ({smooth_text}iter# {iter})')
+    plt.xlabel(xlabel)
+    plt.ylabel(ylabel)
     if xlim is not None: plt.xlim(xlim)
     if ylim is not None: plt.ylim(ylim)
     plt.yscale(yscale)
@@ -270,56 +283,110 @@ def multi_perform_plot(pvals, rcParams=(8, 4), yscale='linear',
     for i in range(len(pvals)):
         if meas_min:
             lim = 'min'
-            sel_val = np.round(min(pvals[i]), 3)
+            sel_val = np.round(min(pvals[i]), 4)
             sel_x = np.argmin(pvals[i])
         else:
             lim = 'max'
-            sel_val = np.round(max(pvals[i]), 3)
+            sel_val = np.round(max(pvals[i]), 4)
             sel_x = np.argmax(pvals[i])
         smooth_vals = smooth_movtarg(pvals[i], smooth_weight)
         sel_lab = labels[i] if labels else f'{i}'
         plt.plot([x*log_int_list[i] for x in range(len(pvals[i]))], smooth_vals, 
                  linestyle=line_styles[i], color=line_cols[i],
                  label=f'{sel_lab}  ({lim} {meas_type}={sel_val} @ iter# {sel_x*log_int_list[i]})')
-    plt.legend(loc='best', ncol=1)
+    plt.legend(loc='best', ncol=legend_cols, fontsize=legend_fsize)
+    if len(pvals) > legend_lim: ax.get_legend().remove()
     if save_plot is not None:
-        plt.savefig(save_plot, format='eps')
+        os.makedirs(os.path.dirname(save_plot), exist_ok=True)
+        ext = os.path.splitext(save_plot)[1][1:]
+        plt.savefig(save_plot, format=ext)
     plt.show()
 
-### Plot and compare various performance plots
-# def multi_perform_plot(pvals, rcParams=(8, 4), yscale='linear', 
-#                   backplot=False, smooth_weight=0.9, save_plot=None,
-#                   title='Performance vs iteration', meas_type='Cost', 
-#                   meas_min=True, labels=[], back_color='linen',
-#                   xlim=None, ylim=None, log_interv=1):
-#     if not pvals: # Empty list of curves
-#         return
-#     iter = max([len(p) for p in pvals])
-#     plt.rcParams["figure.figsize"] = rcParams
-#     plt.title(f'{title} '+('with smoothing ' if smooth_weight>0 else ' ')+
-#               f'(iter# {iter*log_interv})')
-#     plt.xlabel(f'Iteration')
-#     plt.ylabel(meas_type)
-#     if xlim is not None: plt.xlim(xlim)
-#     if ylim is not None: plt.ylim(ylim)
-#     plt.yscale(yscale)
-#     for i in range(len(pvals)):
-#         if backplot:
-#             plt.plot([x*log_interv for x in range(len(pvals[i]))], pvals[i], color=back_color)
-#     for i in range(len(pvals)):
-#         if meas_min:
-#             lim = 'min'
-#             sel_val = np.round(min(pvals[i]), 3)
-#             sel_x = np.argmin(pvals[i])
-#         else:
-#             lim = 'max'
-#             sel_val = np.round(max(pvals[i]), 3)
-#             sel_x = np.argmax(pvals[i])
-#         smooth_vals = smooth_movtarg(pvals[i], smooth_weight)
-#         sel_lab = labels[i] if labels else f'{i}'
-#         plt.plot([x*log_interv for x in range(len(pvals[i]))], smooth_vals, label=f'{sel_lab}  ({lim} {meas_type}={sel_val} @ iter# {sel_x*log_interv})')
-#     plt.legend(loc='best', ncol=1)
-#     if save_plot is not None:
-#         plt.savefig(save_plot, format='eps')
-#     plt.show()
 
+### Plot a list of series, where each series may start at a differ X point
+#   y_list: a list of series with equidistant points
+#   X_list: a list of starting X points for each series
+#   labels, color, lines, marks: Plot features for each series
+#   other: standard plot properties
+def multi_plot_flat_ts(
+    y_list, X_list=None, labels=None, colors=None, lines=None, markers=None, marker_colors=None,
+    xlim=None, ylim=None, rcParams=(12, 6), xlabel='Range', ylabel='Target value',
+    legend_cols=3, title='Time series plot', save_plot=None):
+
+    # labels=['Target function', 'Training data', 'Test data', 'Fitted model', 'Model predictions'],
+    # colors=['lightblue', 'lightblue', 'pink', 'blue', 'red'],
+    # linestyles=['dashed', 'solid', 'solid', 'dashed', 'dashed'],
+
+    if len(y_list) == 0:
+        print(f'*** Error: the list of data to plot cannot be empty')
+        return
+        
+    # Missing main parameters
+    if X_list is None or len(X_list) == 0:
+        X_list = [0] # [[i for i in ]]
+    if len(X_list) < len(y_list):
+        ts_start = X_list[-1]+len(y_list[len(X_list)])
+        for ts in y_list[len(X_list):]:
+            X_list.append(ts_start)
+            ts_start += len(ts)
+
+    if labels is None or len(labels) == 0:
+        labels = [f'Plot {0:02d}']
+    if len(labels) < len(y_list):
+        for i in range(len(labels), len(y_list)):
+            labels.append(f'Plot {i:02d}')
+
+    cmap = matplotlib.colormaps['Set1']
+    map_colors = cmap.colors+cmap.colors+cmap.colors
+    if colors is None or len(colors) == 0:
+        colors = [map_colors[0]]
+    if len(colors) < len(y_list):
+        for i in range(len(colors), len(y_list)):
+            colors.append(map_colors[i])
+
+    if marker_colors is None or len(marker_colors) == 0:
+        marker_colors = colors
+    if len(marker_colors) < len(y_list):
+        for i in range(len(marker_colors), len(y_list)):
+            marker_colors.append(colors[i])
+
+    if lines is None or len(lines) == 0:
+        lines = ['solid']
+    if len(lines) < len(y_list):
+        lines = lines+['solid']*(len(y_list)-len(lines))
+    
+    if markers is None or len(markers) == 0:
+        markers = ['none']
+    if len(markers) < len(y_list):
+        markers = markers+['none']*(len(y_list)-len(markers))
+    
+    # Parameter values
+    if rcParams is not None:
+        plt.rcParams["figure.figsize"] = rcParams        
+    if xlim is not None:
+        plt.xlim(xlim[0], xlim[1])
+    if ylim is not None:
+        plt.ylim(ylim[0], ylim[1])
+
+    plt.title(title)
+    plt.xlabel(xlabel)
+    plt.ylabel(ylabel)
+
+    # Calculate the X_range for each list
+    
+    for i in range(len(y_list)):
+        xfirst = X_list[i]
+        xlast = X_list[i]+len(y_list[i])
+        xrange = range(xfirst, xlast)
+        plt.plot(xrange, y_list[i], linestyle=lines[i], marker=markers[i], 
+                 color=colors[i], mec=colors[i], mfc=marker_colors[i], label=labels[i])
+        if i > 0:
+            plt.axvline(x = X_list[i]-0.5, color = 'lightgray', linestyle='dashed')
+    
+    plt.legend(loc='best', ncol=legend_cols)
+    
+    if save_plot is not None:
+        os.makedirs(os.path.dirname(save_plot), exist_ok=True)
+        ext = os.path.splitext(save_plot)[1][1:]
+        plt.savefig(save_plot, format=ext)
+    plt.show()    

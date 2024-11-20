@@ -28,6 +28,12 @@ def merged_tswind(wind_dict, trim_left=0, trim_right=0):
             wind_list.extend(wind)
     return wind_list
 
+### Perform MSE on dictionaries
+def mse_tswin(wind_exp, wind_pred, trim_left=0, trim_right=0):
+    exp = merged_tswind(wind_exp, trim_left=trim_left, trim_right=trim_right)
+    pred = merged_tswind(wind_pred, trim_left=trim_left, trim_right=trim_right)
+    return mean_squared_error(exp, pred)   
+
 ### Perform RMS on dictionaries
 def rms_tswin(wind_exp, wind_pred, trim_left=0, trim_right=0):
     exp = merged_tswind(wind_exp, trim_left=trim_left, trim_right=trim_right)
@@ -62,6 +68,12 @@ def merged_flat_tswind(wind_flat, trim_left=0, trim_right=0):
             wind = wind[:-trim_right] if trim_right>0 else wind
             wind_list.extend(wind)
     return np.array(wind_list)
+
+### Perform MSE on TSs
+def mse_flat_tswin(wind_exp, wind_pred, trim_left=0, trim_right=0):
+    exp = merged_flat_tswind(wind_exp, trim_left=trim_left, trim_right=trim_right)
+    pred = merged_flat_tswind(wind_pred, trim_left=trim_left, trim_right=trim_right)
+    return mean_squared_error(exp, pred)  
 
 ### Perform RMS on TSs
 def rms_flat_tswin(wind_exp, wind_pred, trim_left=0, trim_right=0):

@@ -1,0 +1,1 @@
+{"data_name": "2_sins_sw", "major_version": 9, "minor_version": 0, "data_train": 50, "data_valid": 20, "data_noise": 0, "wind_size": 5, "wind_step": 1, "wind_horizon": 1, "seed": 2022}
