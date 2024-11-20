@@ -1,7 +1,7 @@
 # Time series encoding and decoding
 A Qiskit repository for the QTML'2024 poster:
-- Jacob L. Cybulski and Sebastian Zając (2024, "The Art of Data Encoding and Decoding for Quantum Time Series Analysis."<br/>
-  *8th International Conference on Quantum Techniques in Machine Learning,* University of Melbourne,<br/>
+- Jacob L. Cybulski and Sebastian Zając (2024, "The Art of Data Encoding and Decoding for Quantum Time Series Analysis."
+  *8th International Conference on Quantum Techniques in Machine Learning,* University of Melbourne,
   Melbourne, Australia, 25-29 November 2024.
 
 ## Folders
