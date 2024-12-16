@@ -1,0 +1,1 @@
+{"case_name": "xqnn", "major_version": 9, "minor_version": 0, "data_name": "2_sins_sw", "data_sample": 100, "data_split": 0.7, "data_noise": 0.0, "ansatz_qubits": 9, "ansatz_fm_layers": 1, "ansatz_anz_layers": 5, "ansatz_ent": "circular", "log_interv": 1, "opt_name": "SPSA", "epochs": 10000, "shots": 10000, "seed": 2022}
