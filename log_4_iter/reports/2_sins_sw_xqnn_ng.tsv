@@ -1,0 +1,2 @@
+Data	Model	Specs	Qubits	Params	Epochs	Tr_Med_R2	Tr_Med_MSE	Tr_Med_MAE	Ts_Med_R2	Ts_Med_MSE	Ts_Med_MAE
+2_sins_sw	xqnn_ng	q9 in5 fm1 anz5	9	162	60	0.93757445	0.00245857	0.04215113	0.85719338	0.00499431	0.06335616

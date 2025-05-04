@@ -297,12 +297,13 @@ class Target_csv_file(Target):
             return np.array([self.fun_point(xi) for xi in x])
 
 ### Define a target function params
-def target_split(f, samples, noise=0, train_pc=0.7, seed=None):
+#   xrange: X will be rescaled to this range after y is generated
+def target_split(f, samples, noise=0, train_pc=0.7, seed=None, xrange=None):
     
     if seed is not None: np.random.seed(seed)
     samples_train = int(samples * train_pc)
     samples_valid = samples-samples_train
-        
+
     lb, ub = f.xrange()
     lb_train, ub_train = lb, lb+train_pc*(ub - lb)
     lb_valid, ub_valid = lb+train_pc*(ub - lb), ub
@@ -311,7 +312,48 @@ def target_split(f, samples, noise=0, train_pc=0.7, seed=None):
     ### Prepare all X and y data
     X_all = np.linspace(lb, ub, num=samples)
     y_all = f.fun(X_all)
+    if xrange:
+        lb_new, ub_new = xrange
+        X_all = np.array([(x-lb)*(ub_new-lb_new)/(ub-lb)+lb_new for x in X_all])
+
+    ### Some of these are legacy
+    X_train = (ub_train - lb_train) * np.random.random(samples_train) + lb_train
+    X_train = np.sort(X_train, axis = 0)
+    y_train = f.fun(X_train) + noise * (np.random.random(samples_train) - 0.5)
+    if xrange:
+        lb_new, ub_new = xrange
+        X_train = np.array([(x-lb)*(ub_new-lb_new)/(ub-lb)+lb_new for x in X_train])
+        
+    X_valid = (ub_valid - lb_valid) * np.random.random(samples_valid) + lb_valid
+    X_valid = np.sort(X_valid, axis = 0)
+    y_valid = f.fun(X_valid) + noise * (np.random.random(samples_valid) - 0.5)
+    if xrange:
+        lb_new, ub_new = xrange
+        X_valid = np.array([(x-lb)*(ub_new-lb_new)/(ub-lb)+lb_new for x in X_valid])
     
+    ### Reshape Xs for fitting, scoring and prediction
+    X_all = X_all.reshape(samples, 1)
+    X_train = X_train.reshape(samples_train, 1)
+    X_valid = X_valid.reshape(samples_valid, 1)
+
+    return X_all, y_all, X_train, y_train, X_valid, y_valid
+
+### Define a target function params
+def target_split_0(f, samples, noise=0, train_pc=0.7, seed=None, xrange=None):
+    
+    if seed is not None: np.random.seed(seed)
+    samples_train = int(samples * train_pc)
+    samples_valid = samples-samples_train
+
+    lb, ub = f.xrange()
+    lb_train, ub_train = lb, lb+train_pc*(ub - lb)
+    lb_valid, ub_valid = lb+train_pc*(ub - lb), ub
+    T = (ub - lb)
+    
+    ### Prepare all X and y data
+    X_all = np.linspace(lb, ub, num=samples)
+    y_all = f.fun(X_all)
+
     ### Some of these are legacy
     X_train = (ub_train - lb_train) * np.random.random(samples_train) + lb_train
     X_train = np.sort(X_train, axis = 0)

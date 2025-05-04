@@ -231,7 +231,9 @@ class Regr_callback:
     name = "Regr_callback"
     
     # Initialises the callback
-    def __init__(self, log_interval=1, prompt_interval=1, tqdm_progress=None):
+    def __init__(self, log_interval=1, prompt_interval=1, tqdm_progress=None, 
+                 title='Objective function value', xlabel='Iteration', ylabel='Cost', col='blue'):
+        # print(f'Initialised with log_interval={log_interval}, prompt_interval={prompt_interval}')
         self.objfun_min = 99999
         self.log_min = 99999
         self.objfun_vals = []
@@ -240,6 +242,12 @@ class Regr_callback:
         self.log_interval = log_interval
         self.prompt_interval = prompt_interval
         self.pbar = tqdm_progress
+        self.title = title
+        self.xlabel = xlabel
+        self.ylabel = ylabel
+        self.col = col
+        self.start = time.time()
+        self.elapsed = time.time() - self.start
 
     # Initialise callback lists
     # - For some reason [] defaults not always work (bug?)
@@ -261,14 +269,16 @@ class Regr_callback:
     # - Can be used iteratively to make animated plot
     def plot(self, title=None, xlabel=None, ylabel=None, col=None, save_plot=None, show_plot=True):
         clear_output(wait=True)
-        if title is None: title = 'Objective function value'
-        if xlabel is None: xlabel = 'Iteration'
-        if ylabel is None: ylabel = 'Cost'
-        if col is None: col = 'blue'
+        if title is None: title = self.title
+        if xlabel is None: xlabel = self.xlabel
+        if ylabel is None: ylabel = self.ylabel
+        if col is None: col = self.col
         best_val = self.min_obj()
         x_vals = [x*self.log_interval for x in range(len(self.objfun_vals))]
+        self.elapsed = time.time() - self.start
+        time_str = time.strftime("%H:%M:%S", time.gmtime(self.elapsed))
         plt.rcParams["figure.figsize"] = (12, 6)
-        plt.title(f'{title} (min: {np.round(best_val[1], 4)} @ {best_val[0]*self.log_interval})')
+        plt.title(f'{title} (min: {np.round(best_val[1], 4)} @ {best_val[0]*self.log_interval}) / Time: {time_str}')
         plt.xlabel(xlabel)
         plt.ylabel(ylabel)
         plt.plot(x_vals, self.objfun_vals, color=col)
@@ -286,7 +296,7 @@ class Regr_callback:
             self.objfun_vals.append(obj_func_eval)
             self.params_vals.append(weights)
             self.log_min = np.min(self.objfun_vals)
-        if self.pbar is not None: self.pbar.update(1)
+        if self.pbar is not None: self.pbar.update()
         self.epoch += 1
 
     # Callback function to store objective function values and plot
@@ -297,9 +307,12 @@ class Regr_callback:
             
     # Callback function to store objective function values but not plot
     def objfun_print(self, weights, obj_func_eval):
+        # print(f'Callback with objval={obj_func_eval}, and weights[0]={weights[0]}')
         self.collect(weights, obj_func_eval)
+        self.elapsed = time.time() - self.start
+        time_str = time.strftime("%H:%M:%S", time.gmtime(self.elapsed))
         if self.epoch % self.prompt_interval == 0:
             best_val = self.min_obj()
-            print(f'Results:{"":<3}epoch={self.epoch: 5d}, min cost / '+\
-                  f'real={np.round(self.objfun_min, 4):0.5f} / '+\
-                  f'logged={np.round(best_val[1], 4):0.5f}{"":<3}@ {best_val[0]*self.log_interval: 5d}')
+            print(f'Results:{"":<3}epoch={self.epoch: 5d}, min cost: '+\
+                  f'real={np.round(self.objfun_min, 4):0.5f} - '+\
+                  f'logged={np.round(best_val[1], 4):0.5f}{"":<3}@ {best_val[0]*self.log_interval: 5d} / Time: {time_str}')
