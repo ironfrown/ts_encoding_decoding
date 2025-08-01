@@ -27,7 +27,7 @@ def plot_train_and_test_data(
     X_org, y_org, X_train, y_train, X_valid, y_valid,
     y_train_hat=None, y_valid_hat=None,
     xlim=None, ylim=None, rcParams=(12, 6), dpi=72,
-    legend_cols=3, marker='o',
+    legend_cols=3, marker='o', markers=None,
     labels=['Target function', 'Training data', 'Test data', 'Fitted model', 'Model predictions'],
     colors=['lightblue', 'lightblue', 'pink', 'blue', 'red'],
     linestyles=['dashed', 'solid', 'solid', 'dashed', 'dashed'],
@@ -43,6 +43,8 @@ def plot_train_and_test_data(
         plt.xlim(xlim[0], xlim[1])
     if ylim is not None:
         plt.ylim(ylim[0], ylim[1])
+    if markers is None:
+        markers = [marker, marker, marker, marker, marker]
 
     plt.title(title)
     plt.xlabel(xlabel)
@@ -50,9 +52,9 @@ def plot_train_and_test_data(
     
     # Plot target function
     if linestyles[0] != 'none':
-        plt.plot(X_org, y_org, color=colors[0], linestyle=linestyles[0], label=labels[0])
-    plt.plot(X_train, y_train, color=colors[1], linestyle=linestyles[1], label=labels[1])
-    plt.plot(X_valid, y_valid, color=colors[2], linestyle=linestyles[2], label=labels[2])
+        plt.plot(X_org, y_org, color=colors[0], linestyle=linestyles[0], mfc='white', marker=markers[0], label=labels[0])
+    plt.plot(X_train, y_train, color=colors[1], linestyle=linestyles[1], mfc='white', marker=markers[1], label=labels[1])
+    plt.plot(X_valid, y_valid, color=colors[2], linestyle=linestyles[2], mfc='white', marker=markers[2], label=labels[2])
 
     ##############
     #     plt.plot(xrange, y_list[i], linestyle=lines[i], marker=markers[i], 
@@ -61,17 +63,11 @@ def plot_train_and_test_data(
     
     # Plot fitted line
     if y_train_hat is not None:
-        plt.plot(X_train, y_train_hat, color=colors[3], linestyle=linestyles[3], label=labels[3])
-        plt.plot(X_train, y_train_hat, color=colors[3], mfc='white', marker=marker, linestyle='None')
-    else:
-        plt.plot(X_train, y_train, mec=colors[3], mfc='white', marker=marker, linestyle='None')
+        plt.plot(X_train, y_train_hat, color=colors[3], linestyle=linestyles[3], mfc='white', marker=markers[3], label=labels[3])
     
     # Plot prediction
     if y_valid_hat is not None:
-        plt.plot(X_valid, y_valid_hat, color=colors[4], linestyle=linestyles[4], label=labels[4])
-        plt.plot(X_valid, y_valid_hat, mec=colors[4], mfc='white', marker=marker, linestyle='None')
-    else:
-        plt.plot(X_valid, y_valid, mec=colors[4], mfc='white', marker=marker, linestyle='None')
+        plt.plot(X_valid, y_valid_hat, color=colors[4], linestyle=linestyles[4], mfc='white', marker=markers[4], label=labels[4])
 
     plt.axvline(x = (X_train[-1][0]+X_valid[0][0])/2, color = 'lightgray', linestyle='dashed')
     plt.legend(loc='best', ncol=legend_cols)
@@ -251,8 +247,8 @@ def mae_plot(mae_train_vals, mae_valid_vals, rcParams=(8, 4), dpi=72, yscale='li
 def multi_perform_plot(pvals, log_interv=1, rcParams=(8, 4), dpi=72, 
                   yscale='linear', smooth_weight=0.9, smooth_type='emt', save_plot=None,
                   title='Performance vs iteration', meas_type='Cost', ylabel='Cost', xlabel='Iteration',
-                  meas_min=True, labels=[], line_styles=None, line_cols=None, prec=5,
-                  backplot=False, back_color='linen', col_cycle_rep=10,
+                  meas_min=True, labels=[], line_styles=None, line_cols=None, prec=None,
+                  backplot=False, back_color='linen', col_cycle_rep=10, opt_format=None,
                   legend_fsize=None, legend_cols=1, legend_lim=20, xlim=None, ylim=None):
     
     if not pvals: # Empty list of curves
@@ -288,17 +284,19 @@ def multi_perform_plot(pvals, log_interv=1, rcParams=(8, 4), dpi=72,
     for i in range(len(pvals)):
         if meas_min:
             lim = 'min'
-            sel_val = np.round(min(pvals[i]), prec)
+            sel_val = min(pvals[i])
             sel_x = np.argmin(pvals[i])
         else:
             lim = 'max'
-            sel_val = np.round(max(pvals[i]), prec)
+            sel_val = max(pvals[i])
             sel_x = np.argmax(pvals[i])
         smooth_vals = smooth_movtarg(pvals[i], smooth_weight)
         sel_lab = labels[i] if labels else f'{i}'
+        sel_val = np.round(sel_val, prec) if prec is not None else sel_val
+        sel_val_text = f'{sel_val}' if opt_format is None else f'{sel_val:{opt_format}}'
         plt.plot([x*log_int_list[i] for x in range(len(pvals[i]))], smooth_vals, 
                  linestyle=line_styles[i], color=line_cols[i],
-                 label=f'{sel_lab}  ({lim} {meas_type}={sel_val} @ iter# {sel_x*log_int_list[i]})')
+                 label=f'{sel_lab}  ({lim} {meas_type}={sel_val_text} @ iter# {sel_x*log_int_list[i]})')
     plt.legend(loc='best', ncol=legend_cols, fontsize=legend_fsize)
     if len(pvals) > legend_lim: ax.get_legend().remove()
     if save_plot is not None:
@@ -403,8 +401,9 @@ def plot_objfn_range(objective_fn, smooth_weight=0, log_interv=1,
                      objfn_name='Model', objfn_list=None, meas_min=True,
                      title = 'Range of objective function values for all model instances',
                      xlabel = 'Iterations', ylabel = 'Objective Function Value', meas_type='mean cost',
-                     color = ['red', 'blue', 'orange', 'green', 'black'], xlim=None, ylim=None, 
-                     rcParams=(8, 4), dpi=72, prec=5, save_plot = None):
+                     color = ['red', 'blue', 'orange', 'green', 'black', 'black', 'black', 'black', 'black'], 
+                     linestyles=['solid', 'solid', 'solid', 'solid', 'solid', 'solid', 'solid', 'solid', 'solid'],
+                     xlim=None, ylim=None, rcParams=(8, 4), dpi=72, prec=None, opt_format=None, save_plot = None):
 
     ### Smooth the array of values
     def smooth(scalars, weight):  # Weight between 0 and 1
@@ -462,22 +461,25 @@ def plot_objfn_range(objective_fn, smooth_weight=0, log_interv=1,
     
             if meas_min:
                 lim = 'min'
-                sel_val = np.round(min(mean_vals), prec)
+                sel_val = min(mean_vals)
                 sel_x = np.argmin(mean_vals)
             else:
                 lim = 'max'
-                sel_val = np.round(max(mean_vals), prec)
+                sel_val = max(mean_vals)
                 sel_x = np.argmax(mean_vals)
-    
+                
+            sel_val = np.round(sel_val, prec) if prec is not None else sel_val
+            sel_val_text = f'{sel_val}' if opt_format is None else f'{sel_val:{opt_format}}'
+        
             xrange = [x * log_interv for x in range(select.shape[1])]
-            plabel =  f'{lim}({meas_type}) = {sel_val} @ iter# {sel_x*log_int_list[c]}'
+            plabel =  f'{lim}({meas_type}) = {sel_val_text} @ iter# {sel_x*log_int_list[c]}'
     
             if objfn_name is None:
                 plt.plot(xrange, mean_vals, color = color[c])
             elif objfn_list is None:
-                plt.plot(xrange, mean_vals, color = color[c], label=f'{objfn_name} {c}: {plabel}')
+                plt.plot(xrange, mean_vals, color = color[c], linestyle=linestyles[c], label=f'{objfn_name} {c}: {plabel}')
             else:
-                plt.plot(xrange, mean_vals, color = color[c], label=f'{objfn_list[c]}: {plabel}')
+                plt.plot(xrange, mean_vals, color = color[c], linestyle=linestyles[c], label=f'{objfn_list[c]}: {plabel}')
             plt.fill_between(range(0, select.shape[1]), max_vals, min_vals, color = color[c], alpha = 0.2)
     
     if xlim is not None:

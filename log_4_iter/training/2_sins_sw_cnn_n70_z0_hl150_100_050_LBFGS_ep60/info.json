@@ -1,1 +1,0 @@
-{"case_name": "cnn", "major_version": 9, "minor_version": 13, "data_name": "2_sins_sw", "data_sample": 70, "data_split": 0.7142857142857143, "data_noise": 0, "model_inputs": 5, "model_layers": [150, 100, 50], "model_outputs": 1, "log_interv": 1, "opt_name": "LBFGS", "epochs": 60, "seed": 2022, "inst_no": 10, "inst_seeds": [4989, 1244, 173, 4720, 6384, 8024, 2066, 24, 7477, 8203]}

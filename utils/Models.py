@@ -228,7 +228,7 @@ def swindow_serial_model(qubit_no, input_no, xlayers=1, add_meas=False, ent='cir
         SParams.append(param_x)
 
     ### Create an ansatz
-    qr = QuantumRegister(qubit_no, 'data')
+    qr = QuantumRegister(qubit_no, 'q')
     ansatz = QuantumCircuit(qr, name='ansatz')
     WParams = []
 
@@ -285,8 +285,10 @@ def swindow_serial_model(qubit_no, input_no, xlayers=1, add_meas=False, ent='cir
 
 
 ### Sliding window QNN model
+# observable = global / local / patrial
 def swindow_qnn_model(qubits_no, inputs_no, fm_layers_no, ans_layers_no, ent='full', 
-                      insert_barriers=True, add_meas=False):
+                      insert_barriers=True, add_meas=False, return_components=False,
+                      observable='global'):
 
     fm_map = ZZFeatureMap(inputs_no, reps=fm_layers_no, insert_barriers=insert_barriers, parameter_prefix='s')
     # ansatz = RealAmplitudes(qubits_no, entanglement=ent, reps=ans_layers_no, insert_barriers=insert_barriers, parameter_prefix='w')
@@ -300,7 +302,12 @@ def swindow_qnn_model(qubits_no, inputs_no, fm_layers_no, ans_layers_no, ent='fu
     fm_end_qubit = fm_start_qubit+inputs_no
     
     if add_meas:
-        circ = QuantumCircuit(qubits_no, inputs_no, name="circ")
+        if observable == 'local':
+            circ = QuantumCircuit(qubits_no, 1, name="circ")
+        elif observable == 'global':
+            circ = QuantumCircuit(qubits_no, qubits_no, name="circ")
+        else:
+            circ = QuantumCircuit(qubits_no, inputs_no, name="circ")
     else:
         circ = QuantumCircuit(qubits_no, name="circ")
 
@@ -311,16 +318,26 @@ def swindow_qnn_model(qubits_no, inputs_no, fm_layers_no, ans_layers_no, ent='fu
     circ.barrier()
     circ.append(ansatz, qargs=ansatz.qubits)
     if add_meas:
-        for q in range(inputs_no):
-            #print(fm_start_qubit+q, q)
-            circ.measure(fm_start_qubit+q, q)
-    return circ.decompose().decompose(), fm_map.parameters, ansatz.parameters
+        if observable == 'local':
+            circ.measure(fm_start_qubit+inputs_no//2, 0)
+        elif observable == 'global':
+            # This is for observable Z*qubits_no 
+            for q in range(qubits_no):
+                circ.measure(q, q)
+        else: # observable == 'input'
+            # This is for semi-localised observable (Z*inputs_no, I*(qubits_no-inputs_no)
+            for q in range(inputs_no):
+                circ.measure(fm_start_qubit+q, q)
+    if return_components:
+        return fm_map, ansatz, circ
+    else:
+        return circ.decompose().decompose(), fm_map.parameters, ansatz.parameters
 
 
 import torch
 from torch import nn, tensor, optim
 
-### Classic estimator
+### Classic large estimator
 class Classic_NN(nn.Module):
 
     def __init__(self, in_shape, out_shape):
@@ -338,6 +355,76 @@ class Classic_NN(nn.Module):
             nn.LeakyReLU(True),
             #nn.Dropout(0.2),
             nn.Linear(50, out_shape)
+        )
+        
+    def forward(self, x):
+        x = self.model(x)
+        return x
+
+### Classic medium estimator
+class Classic_NN_Medium(nn.Module):
+
+    def __init__(self, in_shape, out_shape):
+        super(Classic_NN_Medium, self).__init__()
+        
+        self.model = nn.Sequential(
+            nn.Linear(in_shape, 50),
+            nn.LeakyReLU(True),
+            nn.Linear(50, 80),
+            nn.BatchNorm1d(80),
+            nn.LeakyReLU(True),
+            nn.Linear(80, 20),
+            nn.LeakyReLU(True),
+            nn.Linear(20, out_shape)
+        )
+        
+    def forward(self, x):
+        x = self.model(x)
+        return x
+
+### Classic small estimator
+class Classic_NN_Small(nn.Module):
+
+    def __init__(self, in_shape, out_shape):
+        super(Classic_NN_Small, self).__init__()
+        
+        self.model = nn.Sequential(
+            nn.Linear(in_shape, 10),
+            nn.ReLU(True),
+            # nn.Dropout(0.01),
+            nn.Linear(10, 15),
+            nn.BatchNorm1d(15),
+            nn.ReLU(True),
+            # nn.Dropout(0.01),
+            nn.Linear(15, 10),
+            nn.ReLU(True),
+            # nn.Dropout(0.01),
+            nn.Linear(10, out_shape)
+        )
+        
+    def forward(self, x):
+        x = self.model(x)
+        return x
+
+### Classic tiny estimator
+class Classic_NN_Tiny(nn.Module):
+
+    def __init__(self, in_shape, out_shape):
+        super(Classic_NN_Tiny, self).__init__()
+        
+        self.model = nn.Sequential(
+            nn.Linear(in_shape, 8),
+            nn.ReLU(True),
+            # nn.Dropout(0.01),
+            nn.Linear(8, 5),
+            nn.BatchNorm1d(5),
+            nn.ReLU(True),
+            # nn.Dropout(0.01),
+            nn.Linear(5, 3),
+            nn.BatchNorm1d(3),
+            nn.ReLU(True),
+            # nn.Dropout(0.01),
+            nn.Linear(3, out_shape)
         )
         
     def forward(self, x):
