@@ -238,7 +238,7 @@ def swindow_serial_model(qubit_no, input_no, xlayers=1, add_meas=False, ent='cir
         s_qr = QuantumRegister(qubit_no)
         s_ansatz = QuantumCircuit(s_qr, name='SSM')
         for q in range(qubit_no):
-            param_x = SParams[q] if used_sgates < input_no else 0
+            param_x = SParams[used_sgates] if used_sgates < input_no else 0
             s_ansatz.rx(param_x, q)
             used_sgates += 1
         return s_ansatz
