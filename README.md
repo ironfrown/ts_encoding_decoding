@@ -3,8 +3,8 @@ A Qiskit repository for the paper:
 - Jacob L. Cybulski and Sebastian Zajac, "Quantum Modelling of Time Series: Expressivity vs. Trainability"
 
 which extends our previous QTML'2024 poster:
-- Jacob L. Cybulski and Sebastian Zając (2024, "The Art of Data Encoding and Decoding for Quantum Time Series Analysis."<br/>
-  *8th International Conference on Quantum Techniques in Machine Learning,* University of Melbourne,<br/>
+- Jacob L. Cybulski and Sebastian Zając (2024, "The Art of Data Encoding and Decoding for Quantum Time Series Analysis."
+  *8th International Conference on Quantum Techniques in Machine Learning,* University of Melbourne,
   Melbourne, Australia, 25-29 November 2024.
 
 ## Note
@@ -39,19 +39,19 @@ Note, however, that for the notebooks to be executed directly from the runs fold
   It also includes entangling layers of trainable parameters (before and after data).
 
 - **qtsa_03_xparallel_pqft_vXXX_train/analysis_comment.ipynb:**<br/>
-  A variant of PQFT parallel model, however, it allows entangling and data blocks to be repeated.<br/>
-  The model specifies the number of entangling layers of trainable parameters before reuploaded data,<br/>
+  A variant of PQFT parallel model, allowing data reuploading.<br/>
+  The model specifies the number of trainable blocks and reuploading blocks,<br/>
   and the number of such layers after the last data block end.
 
 - **qtsa_04_xqnn_vXXX_train/analysis_comment.ipynb:**<br/>
   Trains and analyses an extended SW QNN model.<br/>
-  The model specifies the number of layers in a feature map and the ansatz of trainable parameters.<br/>
+  The model specifies layers in the feature map and the ansatz of trainable parameters.<br/>
   The QNN is extended to allow the number of qubits to be larger than the number of inputs.
 
 - **qtsa_05_swind_vXXX_train/analysis_comment.ipynb:**<br/>
   Trains and analyses an overloading SW QTSA model.<br/>
-  An overloading model allows to encode windows longer than the number of available qubits.<br/>
-  This is achieved by splitting the window into data segments encoded in-between entangling blocks.<br/>
+  The model allows to encode windows longer than the number of available qubits.<br/>
+  Achieved by splitting the window into segments encoded in-between entangling blocks.<br/>
   The model spoecifies the number of repeatitions of window-and-entangling blocks.
 
 - **qtsa_06_cnn_vXXX_train/analysis_comment.ipynb: Classic MPL:**<br/>
