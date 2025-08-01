@@ -86,3 +86,13 @@ A typical process is to:
   example "qtsa_03_parallel_pqft_v8.16_analysis_q5_lbfgsb_ep50.ipynb"
 - Chart performance and fit of trained models
 - Report the performance of the selected models
+
+## Software
+To execute the notebooks the following software is required:
+- Ubuntu 22.04.5 LTS
+- Python 3.11.11
+- qiskit 1.2.4
+- qiskit-aer-gpu 0.15.1
+- qiskit-algorithms 0.3.1
+- qiskit-machine-learning 0.8.1
+- qiskit-optimization 0.6.1
