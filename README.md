@@ -74,7 +74,7 @@ All utilities have been included in the folder "utils":
 - **TS.py:** Functions manipulating time-series, not used in this repo (I think)
 - **Window.py:** Functions managing time-series split into sliding windows 
 
-## Typical process (data - train - analysis)
+## Typical process (data - train - analysis - charts - reports)
 A typical process is to:
 - Generate data for model training and save it in **log/data/sub-dir** folder,<br/>
   examples "qtsa_00_data_v1.0_2sin.ipynb" and "qtsa_00_data_v1.0_2sin_sw.ipynb"
